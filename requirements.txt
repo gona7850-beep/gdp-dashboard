@@ -1,2 +1,9 @@
 streamlit
 pandas
+numpy
+scipy
+scikit-learn
+matplotlib
+shap
+joblib
+openpyxl
