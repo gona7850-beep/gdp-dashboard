@@ -1,0 +1,26 @@
+column,description,unit,required
+candidate_id,후보 ID,string,yes
+system_class,binary/ternary/quaternary,string,yes
+composition_atpct,원자% 조성 문자열,string,yes
+source_db,OQMD/MP/AFLOW,string,yes
+space_group,결정 space group,string,no
+e_above_hull,헐 위 에너지,eV/atom,yes
+delta_hf,형성 엔탈피,eV/atom,yes
+density,밀도,g/cc,no
+bulk_modulus,체적탄성률,GPa,no
+shear_modulus,전단탄성률,GPa,no
+lattice_a_precip,석출상 격자상수 a,angstrom,no
+lattice_a_nb,Nb 기지 격자상수 a,angstrom,yes
+misfit_pct,Nb 대비 미스핏,%,no
+radius_mismatch,원자반경 mismatch,ratio,no
+eneg_mismatch,전기음성도 mismatch,ratio,no
+interface_surrogate,계면에너지 surrogate score,0-1,no
+brittle_risk,취성상 형성 위험 score,0-1,yes
+processability,용해/주조/가공성 score,0-1,yes
+cost_index,상대 비용 index,0-1,yes
+oxidation_score,산화저항 잠재 score,0-1,no
+diffusivity_proxy,확산 관련 surrogate,0-1,no
+coarsening_resistance,조대화 저항 surrogate,0-1,no
+strength_proxy,강화 잠재 surrogate,0-1,yes
+experiment_yield_strength,실험 항복강도(ML 재학습용),MPa,no
+experiment_creep_life,실험 크리프 수명(ML 재학습용),h,no

@@ -1,0 +1,4 @@
+candidate_id,system_class,composition_atpct,source_db,e_above_hull,delta_hf,lattice_a_precip,lattice_a_nb,misfit_pct,interface_surrogate,brittle_risk,processability,cost_index,strength_proxy,oxidation_score
+C001,binary,Nb-12Ti,OQMD,0.03,-0.21,3.28,3.30,,0.25,0.30,0.75,0.65,0.62,0.55
+C002,ternary,Nb-8Ti-4Hf,MP,0.06,-0.27,3.24,3.30,,0.22,0.35,0.62,0.48,0.71,0.66
+C003,quaternary,Nb-7Ti-3Hf-2Al,AFLOW,0.12,-0.18,3.38,3.30,,0.40,0.55,0.58,0.40,0.64,0.73

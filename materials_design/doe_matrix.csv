@@ -1,0 +1,10 @@
+recipe_id,candidate_id,solution_temp_C,solution_time_h,aging_temp_C,aging_time_h,cooling
+DOE01,C001,1450,2,700,8,air
+DOE02,C001,1450,2,800,8,air
+DOE03,C001,1500,1,750,16,furnace
+DOE04,C002,1450,2,700,8,air
+DOE05,C002,1500,1,800,8,air
+DOE06,C002,1500,1,850,4,water
+DOE07,C003,1450,2,750,16,furnace
+DOE08,C003,1500,1,800,8,air
+DOE09,C003,1500,1,900,2,water
