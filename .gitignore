@@ -1,5 +1,18 @@
 .streamlit/secrets.toml
 
+# Project-specific data (raw/processed CSV + SQLite + cached models)
+data/raw/
+data/processed/
+data/*.db
+data/*.db-journal
+*.parquet
+materials_design/out/*.csv
+models/
+.cache/
+
+# Notebooks checkpoints
+notebooks/.ipynb_checkpoints/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
