@@ -1,2 +1,13 @@
 streamlit
 pandas
+numpy
+scikit-learn
+joblib
+fastapi
+uvicorn[standard]
+pydantic
+httpx
+pytest
+# Optional: enables real Claude calls in core/llm_designer.py
+# (the platform falls back to heuristics if it is missing or no API key is set)
+anthropic
