@@ -1,0 +1,21 @@
+services:
+  api:
+    build: .
+    image: composition-design-platform:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - CLAUDE_COMPOSITION_MODEL=${CLAUDE_COMPOSITION_MODEL:-claude-sonnet-4-6}
+    restart: unless-stopped
+
+  streamlit:
+    image: composition-design-platform:latest
+    depends_on:
+      - api
+    command: streamlit run app/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    restart: unless-stopped

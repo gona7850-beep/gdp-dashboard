@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Composition Design Platform — research workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:        #0f1117;
+  --paper:      #f4f1ea;
+  --paper-2:    #e8e3d6;
+  --rule:       #1d1f29;
+  --accent:     #d24a1f;     /* burnt umber */
+  --accent-2:   #2a6e3f;     /* deep moss */
+  --signal:     #f5b800;     /* spec sheet yellow */
+  --error:      #b8261a;
+  --grid:       rgba(15,17,23,0.06);
+  --shadow:     0 1px 0 rgba(15,17,23,0.08), 0 8px 24px -16px rgba(15,17,23,0.25);
+  --serif: 'Fraunces', 'Times New Roman', serif;
+  --sans:  'Inter Tight', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.45;
+  min-height: 100vh;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(15,17,23,0.025) 1px, transparent 1px);
+  background-size: 4px 4px;
+  z-index: 0;
+}
+.app {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 32px 40px 80px;
+  position: relative;
+  z-index: 1;
+}
+header.bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  padding-bottom: 18px;
+  border-bottom: 1.5px solid var(--ink);
+  margin-bottom: 32px;
+}
+.brand {
+  display: flex; align-items: baseline; gap: 14px;
+}
+.brand .mark {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-style: italic;
+}
+.brand .mark::first-letter { color: var(--accent); }
+.brand .sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.55;
+}
+.spec-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.spec-meta .label { opacity: 0.55; }
+.spec-meta .val   { color: var(--accent); font-weight: 700; }
+.session-tag {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.session-tag .pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+}
+.session-tag .pill.live { background: var(--signal); }
+.session-tag .pill.dead { background: var(--paper); color: var(--ink); opacity: 0.5; }
+
+nav.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 28px;
+}
+nav.tabs button {
+  background: transparent;
+  border: none;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 14px 22px 12px;
+  cursor: pointer;
+  color: var(--ink);
+  position: relative;
+  border-right: 1px solid var(--ink);
+  letter-spacing: 0.01em;
+}
+nav.tabs button:first-child { border-left: 1px solid var(--ink); }
+nav.tabs button .idx {
+  font-family: var(--mono);
+  font-size: 10px;
+  opacity: 0.5;
+  margin-right: 6px;
+}
+nav.tabs button.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+nav.tabs button.active .idx { opacity: 0.7; color: var(--signal); }
+nav.tabs button:not(.active):hover {
+  background: var(--paper-2);
+}
+
+.panel {
+  display: none;
+  animation: rise 240ms ease both;
+}
+.panel.active { display: block; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 28px;
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  position: relative;
+  padding: 22px 22px 20px;
+  box-shadow: var(--shadow);
+}
+.card::before {
+  content: "";
+  position: absolute;
+  top: -1px; left: -1px;
+  width: 22px; height: 22px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+}
+.card h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.card .hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.5;
+  margin-bottom: 18px;
+}
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  color: var(--ink);
+  opacity: 0.7;
+}
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.field textarea { min-height: 120px; resize: vertical; }
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.row { display: flex; gap: 8px; align-items: end; }
+.row .field { flex: 1; margin-bottom: 0; }
+
+button.primary, button.ghost {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 18px;
+  cursor: pointer;
+  border: 1px solid var(--ink);
+  transition: transform 60ms;
+}
+button.primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+button.primary:hover  { background: var(--accent); }
+button.primary:active { transform: translateY(1px); }
+button.primary:disabled { background: #888; cursor: not-allowed; }
+button.ghost {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+button.ghost:hover { background: var(--paper); }
+
+.callout {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--paper-2);
+  margin-top: 12px;
+}
+.callout.warn { border-left-color: var(--error); }
+.callout.ok   { border-left-color: var(--accent-2); }
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+table.data th, table.data td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+table.data th {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+table.data tr:hover td { background: var(--paper-2); }
+table.data td.num { text-align: right; }
+table.data .ok    { color: var(--accent-2); font-weight: 700; }
+table.data .bad   { color: var(--error); font-weight: 700; }
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.metric {
+  border: 1px solid var(--ink);
+  padding: 10px 12px;
+  background: var(--paper-2);
+}
+.metric .k {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+.metric .v {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 500;
+  margin-top: 4px;
+  letter-spacing: -0.02em;
+}
+.metric .v small {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  font-family: var(--mono);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.kv .k { opacity: 0.6; text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; }
+
+#log {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--ink);
+  color: var(--signal);
+  padding: 14px 18px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 24px;
+}
+#log .ts { opacity: 0.5; }
+#log .err { color: var(--error); }
+#log .ok  { color: #67e687; }
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 220px 1fr 60px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.bar-track {
+  height: 12px;
+  background: var(--paper-2);
+  border: 1px solid var(--ink);
+  position: relative;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--ink);
+}
+.bar-fill.pos { background: var(--accent-2); }
+.bar-fill.neg { background: var(--accent); }
+
+footer {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  opacity: 0.55;
+}
+
+.empty {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  opacity: 0.55;
+  padding: 30px 0;
+  text-align: center;
+}
+
+.scroll-wrap {
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--ink);
+}
+.scroll-wrap table.data th {
+  position: sticky; top: 0;
+}
+
+.crosshair-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  position: absolute;
+  top: 8px; right: 14px;
+  color: var(--ink); opacity: 0.4;
+}
+
+.markdown-box {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.65;
+  background: var(--paper-2);
+  border: 1px solid var(--ink);
+  padding: 22px 26px;
+  margin-top: 14px;
+  white-space: pre-wrap;
+}
+.markdown-box strong { color: var(--accent); }
+
+.legend {
+  font-family: var(--mono);
+  font-size: 10px;
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  opacity: 0.7;
+}
+.legend span::before {
+  content: "■";
+  margin-right: 4px;
+}
+.legend .pos::before { color: var(--accent-2); }
+.legend .neg::before { color: var(--accent); }
+
+@media (max-width: 1024px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="bar">
+  <div class="brand">
+    <div class="mark">Composition Design</div>
+    <div class="sub">ml-driven composition / property workbench · v0.2</div>
+  </div>
+  <div class="spec-meta">
+    <span class="label">SPEC </span>
+    <span class="val">XGB + GP · NSGA-II · CONFORMAL α=0.1</span>
+  </div>
+  <div class="session-tag">
+    <span id="session-pill" class="pill dead">NO SESSION</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="active" data-tab="train"   ><span class="idx">01</span>Train</button>
+  <button data-tab="forward"                ><span class="idx">02</span>Forward</button>
+  <button data-tab="inverse"                ><span class="idx">03</span>Inverse</button>
+  <button data-tab="feasibility"            ><span class="idx">04</span>Feasibility</button>
+  <button data-tab="explain"                ><span class="idx">05</span>Explain</button>
+</nav>
+
+<!-- ============ TRAIN ============ -->
+<section class="panel active" id="panel-train">
+  <div class="grid-2">
+    <div class="card">
+      <span class="crosshair-num">01.A</span>
+      <h2>Load data</h2>
+      <div class="hint">CSV-style records · element fractions + targets</div>
+
+      <div class="field">
+        <label>Element columns (comma-separated)</label>
+        <input id="t-elements" value="Fe,Ni,Cr,Mo,Ti" />
+      </div>
+      <div class="field">
+        <label>Target columns</label>
+        <input id="t-targets" value="UTS_MPa,elongation_pct" />
+      </div>
+      <div class="field">
+        <label>Process columns (optional)</label>
+        <input id="t-process" value="" placeholder="e.g. VED,T_anneal" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Optuna trials</label>
+          <input id="t-trials" type="number" value="15" min="5" max="80" />
+        </div>
+        <div class="field">
+          <label>CV folds</label>
+          <input id="t-folds" type="number" value="5" min="2" max="10" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Training data (JSON list-of-records)</label>
+        <textarea id="t-data" spellcheck="false"></textarea>
+      </div>
+      <button class="ghost" id="btn-load-demo">↳ load demo dataset</button>
+      <button class="primary" id="btn-fit">FIT MODEL ▸</button>
+    </div>
+
+    <div class="card">
+      <span class="crosshair-num">01.B</span>
+      <h2>Training report</h2>
+      <div class="hint">cross-validation metrics per target</div>
+      <div id="train-result" class="empty">No model fitted yet. Load data and run FIT.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FORWARD ============ -->
+<section class="panel" id="panel-forward">
+  <div class="grid-2">
+    <div class="card">
+      <span class="crosshair-num">02.A</span>
+      <h2>Query composition</h2>
+      <div class="hint">predict properties + 90% interval + DoA</div>
+      <div class="field">
+        <label>Composition (JSON dict, atomic fractions)</label>
+        <textarea id="f-comp">{"Fe": 0.62, "Ni": 0.12, "Cr": 0.18, "Mo": 0.04, "Ti": 0.04}</textarea>
+      </div>
+      <div class="field">
+        <label>Process (optional JSON)</label>
+        <textarea id="f-proc" style="min-height: 60px;">{}</textarea>
+      </div>
+      <button class="primary" id="btn-predict">PREDICT ▸</button>
+    </div>
+
+    <div class="card">
+      <span class="crosshair-num">02.B</span>
+      <h2>Prediction</h2>
+      <div class="hint">mean ± std · conformal 90% band · DoA score</div>
+      <div id="forward-result" class="empty">Run a prediction to see results.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INVERSE ============ -->
+<section class="panel" id="panel-inverse">
+  <div class="grid-2">
+    <div class="card">
+      <span class="crosshair-num">03.A</span>
+      <h2>Design specification</h2>
+      <div class="hint">NSGA-II + risk-adjusted scoring</div>
+
+      <div class="field">
+        <label>Objectives (one per line: target,direction[,value])</label>
+        <textarea id="i-obj">UTS_MPa,max
+elongation_pct,max</textarea>
+      </div>
+      <div class="field">
+        <label>Element bounds (JSON)</label>
+        <textarea id="i-bounds">{
+  "Fe": [0.50, 0.75],
+  "Ni": [0.05, 0.25],
+  "Cr": [0.10, 0.22],
+  "Mo": [0.01, 0.08],
+  "Ti": [0.00, 0.08]
+}</textarea>
+      </div>
+      <div class="row">
+        <div class="field"><label>Pop size</label><input id="i-pop" type="number" value="60" /></div>
+        <div class="field"><label>Generations</label><input id="i-gen" type="number" value="40" /></div>
+        <div class="field"><label>Risk λ (μ−λσ)</label><input id="i-risk" type="number" value="1.0" step="0.1" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Top-K</label><input id="i-topk" type="number" value="8" /></div>
+      </div>
+      <button class="primary" id="btn-inverse">RUN INVERSE DESIGN ▸</button>
+    </div>
+
+    <div class="card">
+      <span class="crosshair-num">03.B</span>
+      <h2>Pareto-ranked candidates</h2>
+      <div class="hint">scored by μ − λσ across objectives; feasibility tagged</div>
+      <div id="inverse-result" class="empty">Run inverse design to populate candidates.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEASIBILITY ============ -->
+<section class="panel" id="panel-feasibility">
+  <div class="grid-2">
+    <div class="card">
+      <span class="crosshair-num">04.A</span>
+      <h2>Validate candidate</h2>
+      <div class="hint">Hume-Rothery δ · VEC window · VED window · element bounds</div>
+      <div class="field">
+        <label>Composition (JSON)</label>
+        <textarea id="v-comp">{"Fe": 0.62, "Ni": 0.12, "Cr": 0.18, "Mo": 0.04, "Ti": 0.04}</textarea>
+      </div>
+      <div class="row">
+        <div class="field"><label>VEC window low</label><input id="v-vec-lo" type="number" value="6.8" step="0.1" /></div>
+        <div class="field"><label>VEC window high</label><input id="v-vec-hi" type="number" value="8.5" step="0.1" /></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>VED low (J/mm³)</label><input id="v-ved-lo" type="number" value="40" /></div>
+        <div class="field"><label>VED high (J/mm³)</label><input id="v-ved-hi" type="number" value="90" /></div>
+      </div>
+      <div class="field">
+        <label>Process JSON (e.g. VED)</label>
+        <textarea id="v-proc" style="min-height: 50px;">{"VED": 65}</textarea>
+      </div>
+      <button class="primary" id="btn-check">RUN FEASIBILITY ▸</button>
+    </div>
+
+    <div class="card">
+      <span class="crosshair-num">04.B</span>
+      <h2>Feasibility report</h2>
+      <div class="hint">constraint-by-constraint slack</div>
+      <div id="feas-result" class="empty">Run a feasibility check to see results.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXPLAIN ============ -->
+<section class="panel" id="panel-explain">
+  <div class="grid-2">
+    <div class="card">
+      <span class="crosshair-num">05.A</span>
+      <h2>Explain a prediction</h2>
+      <div class="hint">SHAP local + global · Claude interpretation</div>
+      <div class="field">
+        <label>Composition</label>
+        <textarea id="x-comp">{"Fe": 0.62, "Ni": 0.12, "Cr": 0.18, "Mo": 0.04, "Ti": 0.04}</textarea>
+      </div>
+      <div class="field">
+        <label>Target to explain</label>
+        <input id="x-target" value="UTS_MPa" />
+      </div>
+      <button class="primary" id="btn-explain">EXPLAIN ▸</button>
+    </div>
+
+    <div class="card">
+      <span class="crosshair-num">05.B</span>
+      <h2>Attributions</h2>
+      <div class="hint">local SHAP + global mean |SHAP|</div>
+      <div id="explain-result" class="empty">Run an explanation to populate.</div>
+    </div>
+  </div>
+</section>
+
+<div id="log"></div>
+
+<footer>
+  <span>Composition Design Platform · research-grade tool · session-local data</span>
+  <span id="api-status">api: ready</span>
+</footer>
+</div>
+
+<script>
+// ===== plumbing =====
+const $ = (id) => document.getElementById(id);
+const state = { session_id: null, targets: [], elements: [] };
+
+function log(msg, kind="info") {
+  const box = $("log");
+  const ts = new Date().toISOString().split("T")[1].slice(0,8);
+  const line = document.createElement("div");
+  line.innerHTML = `<span class="ts">[${ts}]</span> <span class="${kind}">${msg}</span>`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    $("panel-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+async function api(path, body) {
+  log("→ " + path);
+  const r = await fetch("/api/v1/alloyforge/" + path, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const txt = await r.text();
+    log("✗ " + path + " " + r.status + " " + txt, "err");
+    throw new Error(txt);
+  }
+  log("✓ " + path, "ok");
+  return r.json();
+}
+
+// ===== DEMO DATA =====
+function demoData() {
+  // Synthetic Fe-Ni-Cr-Mo-Ti dataset with reasonable property patterns
+  // UTS roughly increases with Mo, Ti; elongation decreases with Mo.
+  const rng = mulberry32(42);
+  const rows = [];
+  for (let i = 0; i < 60; i++) {
+    const Mo = 0.01 + rng() * 0.07;
+    const Ti = 0.00 + rng() * 0.08;
+    const Cr = 0.10 + rng() * 0.12;
+    const Ni = 0.05 + rng() * 0.20;
+    const Fe = Math.max(0.30, 1 - Mo - Ti - Cr - Ni);
+    const sum = Fe + Ni + Cr + Mo + Ti;
+    const fe = Fe/sum, ni = Ni/sum, cr = Cr/sum, mo = Mo/sum, ti = Ti/sum;
+    const uts = 600 + 4000*mo + 2200*ti + 800*cr + 300*(rng()-0.5);
+    const elo = 35 - 180*mo - 90*ti + 6*ni + 4*(rng()-0.5);
+    rows.push({Fe: fe, Ni: ni, Cr: cr, Mo: mo, Ti: ti,
+                UTS_MPa: +uts.toFixed(1), elongation_pct: +Math.max(0.5, elo).toFixed(2)});
+  }
+  return rows;
+}
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = a;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+$("btn-load-demo").onclick = () => {
+  $("t-data").value = JSON.stringify(demoData(), null, 2);
+  log("demo dataset loaded (60 rows, Fe-Ni-Cr-Mo-Ti, UTS + elongation)", "ok");
+};
+
+// ===== FIT =====
+$("btn-fit").onclick = async () => {
+  try {
+    const elements = $("t-elements").value.split(",").map(s => s.trim()).filter(Boolean);
+    const targets  = $("t-targets").value.split(",").map(s => s.trim()).filter(Boolean);
+    const proc_str = $("t-process").value.trim();
+    const process  = proc_str ? proc_str.split(",").map(s => s.trim()).filter(Boolean) : null;
+    const data = JSON.parse($("t-data").value || "[]");
+    if (!data.length) throw new Error("Training data is empty");
+    $("btn-fit").disabled = true;
+    $("train-result").innerHTML = '<div class="empty">Fitting… Optuna trials × CV folds × targets, can take 20-60s</div>';
+    const res = await api("fit", {
+      element_columns: elements,
+      target_columns: targets,
+      process_columns: process,
+      n_trials: +$("t-trials").value,
+      n_cv_splits: +$("t-folds").value,
+      data
+    });
+    state.session_id = res.session_id;
+    state.elements = elements;
+    state.targets = targets;
+    const pill = $("session-pill");
+    pill.textContent = "SESSION " + res.session_id.slice(0,8).toUpperCase();
+    pill.className = "pill live";
+    renderTrainReport(res);
+  } catch (e) {
+    log("fit failed: " + e.message, "err");
+    $("train-result").innerHTML = `<div class="callout warn">Fit failed: ${e.message}</div>`;
+  } finally {
+    $("btn-fit").disabled = false;
+  }
+};
+
+function renderTrainReport(res) {
+  const cards = Object.entries(res.metrics).map(([tgt, m]) => `
+    <div class="metric">
+      <div class="k">${tgt} · cv mae</div>
+      <div class="v">${m.cv_mae.toFixed(3)}</div>
+    </div>
+    <div class="metric">
+      <div class="k">${tgt} · cv r²</div>
+      <div class="v">${m.cv_r2.toFixed(3)}</div>
+    </div>
+    <div class="metric">
+      <div class="k">${tgt} · n train</div>
+      <div class="v">${m.n_train}</div>
+    </div>
+  `).join("");
+  $("train-result").innerHTML = `
+    <div class="metric-grid">${cards}</div>
+    <div class="callout ok">Model ready · ${res.feature_names.length} features · session ${res.session_id.slice(0,8)}</div>
+  `;
+}
+
+// ===== PREDICT =====
+$("btn-predict").onclick = async () => {
+  if (!state.session_id) { log("no session — fit a model first", "err"); return; }
+  try {
+    const comp = JSON.parse($("f-comp").value);
+    const proc_raw = ($("f-proc").value || "").trim();
+    const proc = proc_raw && proc_raw !== "{}" ? JSON.parse(proc_raw) : null;
+    const res = await api("predict", {
+      session_id: state.session_id,
+      compositions: [comp],
+      process: proc ? [proc] : null,
+    });
+    renderForward(res, comp);
+  } catch (e) {
+    $("forward-result").innerHTML = `<div class="callout warn">${e.message}</div>`;
+  }
+};
+
+function renderForward(res, comp) {
+  const p = res.predictions[0];
+  const iv = res.intervals ? res.intervals[0] : null;
+  const doa = res.doa_scores ? res.doa_scores[0] : null;
+  const targets = Object.keys(p).filter(k => k.endsWith("_mean")).map(k => k.slice(0,-5));
+  let html = '<div class="metric-grid">';
+  for (const t of targets) {
+    const mu = p[t+"_mean"], sd = p[t+"_std"];
+    const lo = iv?.[t+"_lo"], hi = iv?.[t+"_hi"];
+    html += `
+      <div class="metric">
+        <div class="k">${t}</div>
+        <div class="v">${mu.toFixed(2)}<small>± ${sd.toFixed(2)}</small></div>
+        ${lo !== undefined ? `<div style="font-family:var(--mono);font-size:10px;opacity:.65;margin-top:6px;">90% band [${lo.toFixed(1)}, ${hi.toFixed(1)}]</div>` : ''}
+      </div>`;
+  }
+  html += "</div>";
+  if (doa !== null) {
+    const tone = doa > 1.0 ? "warn" : "ok";
+    html += `<div class="callout ${tone}">Domain-of-applicability score: <b>${doa.toFixed(2)}</b> ${doa > 1.0 ? "— extrapolation risk; treat as exploratory." : "— inside training cloud."}</div>`;
+  }
+  $("forward-result").innerHTML = html;
+}
+
+// ===== INVERSE =====
+$("btn-inverse").onclick = async () => {
+  if (!state.session_id) { log("no session", "err"); return; }
+  try {
+    const obj_lines = $("i-obj").value.trim().split("\n").map(l => l.split(",").map(s => s.trim()));
+    const objectives = obj_lines.map(([target, direction, val]) => {
+      const o = { target, direction };
+      if (direction === "target" && val !== undefined) o.target_value = +val;
+      return o;
+    });
+    const element_bounds = JSON.parse($("i-bounds").value);
+    $("inverse-result").innerHTML = '<div class="empty">Searching with NSGA-II…</div>';
+    const res = await api("inverse-design", {
+      session_id: state.session_id,
+      objectives,
+      element_bounds,
+      pop_size: +$("i-pop").value,
+      n_gen: +$("i-gen").value,
+      risk_lambda: +$("i-risk").value,
+      top_k: +$("i-topk").value,
+    });
+    renderInverse(res);
+  } catch (e) {
+    $("inverse-result").innerHTML = `<div class="callout warn">${e.message}</div>`;
+  }
+};
+
+function renderInverse(res) {
+  if (!res.candidates.length) { $("inverse-result").innerHTML = '<div class="empty">No candidates returned.</div>'; return; }
+  const cols = Object.keys(res.candidates[0]);
+  const elementCols = state.elements;
+  const meanCols = cols.filter(c => c.endsWith("_mean"));
+  const head = ["rank", ...elementCols, ...meanCols, "feasible", "agg_score"];
+  let html = '<div class="scroll-wrap"><table class="data"><thead><tr>';
+  for (const h of head) html += `<th>${h}</th>`;
+  html += "</tr></thead><tbody>";
+  for (const c of res.candidates) {
+    html += "<tr>";
+    for (const h of head) {
+      let v = c[h];
+      let cls = "num";
+      if (h === "feasible") {
+        v = c.feasible ? "✓" : "✗";
+        cls = c.feasible ? "ok" : "bad";
+      } else if (typeof v === "number") {
+        v = v.toFixed(elementCols.includes(h) ? 4 : 3);
+      }
+      html += `<td class="${cls}">${v ?? "—"}</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table></div>";
+  $("inverse-result").innerHTML = html;
+}
+
+// ===== FEASIBILITY =====
+$("btn-check").onclick = async () => {
+  if (!state.session_id) { log("no session", "err"); return; }
+  try {
+    const comp = JSON.parse($("v-comp").value);
+    const proc_raw = ($("v-proc").value || "").trim();
+    const proc = proc_raw && proc_raw !== "{}" ? JSON.parse(proc_raw) : null;
+    const res = await api("feasibility/check", {
+      session_id: state.session_id,
+      compositions: [comp],
+      process: proc ? [proc] : null,
+      vec_window: [+$("v-vec-lo").value, +$("v-vec-hi").value],
+      ved_window: [+$("v-ved-lo").value, +$("v-ved-hi").value],
+    });
+    renderFeas(res.results[0]);
+  } catch (e) {
+    $("feas-result").innerHTML = `<div class="callout warn">${e.message}</div>`;
+  }
+};
+
+function renderFeas(r) {
+  const status = r.feasible
+    ? `<div class="callout ok"><b>FEASIBLE</b> — all hard constraints satisfied.</div>`
+    : `<div class="callout warn"><b>INFEASIBLE</b> — hard violations: ${r.hard_violations.join(", ")}</div>`;
+  let table = '<table class="data"><thead><tr><th>Constraint</th><th>Slack g(x)</th><th>Status</th></tr></thead><tbody>';
+  for (const [name, g] of Object.entries(r.scores)) {
+    const isHard = r.hard_violations.includes(name);
+    const isSoft = r.soft_violations.includes(name);
+    const status = g <= 0 ? '<span class="ok">satisfied</span>'
+                  : isHard ? '<span class="bad">hard violated</span>'
+                  : '<span class="bad">soft violated</span>';
+    table += `<tr><td>${name}</td><td class="num">${g.toFixed(4)}</td><td>${status}</td></tr>`;
+  }
+  table += "</tbody></table>";
+  $("feas-result").innerHTML = status + table;
+}
+
+// ===== EXPLAIN =====
+$("btn-explain").onclick = async () => {
+  if (!state.session_id) { log("no session", "err"); return; }
+  try {
+    const comp = JSON.parse($("x-comp").value);
+    const target = $("x-target").value.trim();
+    $("explain-result").innerHTML = '<div class="empty">Running SHAP + LLM interpretation…</div>';
+    const res = await api("explain", {
+      session_id: state.session_id,
+      composition: comp,
+      target,
+    });
+    renderExplain(res, target);
+  } catch (e) {
+    $("explain-result").innerHTML = `<div class="callout warn">${e.message}</div>`;
+  }
+};
+
+function renderExplain(res, target) {
+  const local = res.shap.slice(0, 12);
+  const maxAbs = Math.max(...local.map(r => Math.abs(r.shap)));
+  let bars = "";
+  for (const r of local) {
+    const w = Math.max(2, 100 * Math.abs(r.shap) / maxAbs);
+    const cls = r.shap >= 0 ? "pos" : "neg";
+    bars += `
+      <div class="bar-row">
+        <span>${r.feature}</span>
+        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${w}%"></div></div>
+        <span class="num" style="text-align:right;">${r.shap >= 0 ? "+" : ""}${r.shap.toFixed(3)}</span>
+      </div>`;
+  }
+  const legend = `<div class="legend"><span class="pos">positive contribution</span><span class="neg">negative contribution</span></div>`;
+  let interp = "";
+  if (res.interpretation) {
+    interp = `<h2 style="margin-top:24px;">Interpretation</h2>
+              <div class="hint">claude-mediated reasoning</div>
+              <div class="markdown-box">${escapeHtml(res.interpretation)}</div>`;
+  }
+  $("explain-result").innerHTML = `
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;margin-bottom:10px;">
+      Local SHAP for ${target}
+    </div>
+    ${bars}
+    ${legend}
+    ${interp}
+  `;
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+// initial state
+log("Composition Design Platform UI loaded · waiting for session", "ok");
+</script>
+</body>
+</html>
