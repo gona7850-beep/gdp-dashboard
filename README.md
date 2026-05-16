@@ -86,6 +86,75 @@ The Step 4.5 *Physics Validation* tab cross-checks SHAP signs against rules from
 pytest tests/ -v          # 23 tests, ~6s
 ```
 
+## Composition design & inverse design module
+
+A self-contained ML composition platform now lives alongside the Nb-Si
+workflow. It handles **composition → property prediction**, **inverse
+design** (target properties → candidate compositions), **verification**
+of a single recipe against targets, and **Claude-assisted** target
+parsing / candidate explanation. Designed to be useful without your own
+dataset — there is a synthetic-alloy generator for instant demos.
+
+### Core modules
+
+| File | Purpose |
+|---|---|
+| `core/composition_platform.py` | `PropertyPredictor` (RF / GBR / Ridge / MLP), `CompositionDesigner` (Dirichlet MC + GA inverse design), `DesignConstraints` (per-element min/max/fixed), joblib persistence, RF tree-std uncertainty |
+| `core/synthetic_alloy_data.py` | Rule-of-mixtures dataset generator (10 elements × 4 properties) |
+| `core/llm_designer.py` | Anthropic Claude wrapper with deterministic offline fallback |
+| `core/composition_prompts.py` | Versioned prompt templates (system + task-specific) |
+
+### REST API
+
+Mount path: `/api/v1/composition` (registered in `backend/main.py`).
+
+```
+POST /train          # train from CSV path or inline rows
+POST /predict        # composition → properties (+ uncertainty if RF)
+POST /design         # target properties → top-K candidate compositions
+POST /verify         # alias of /predict
+POST /analyse        # composition + target → feasibility report
+POST /claude/parse   # free-text request → target-property JSON
+POST /claude/explain # LLM rationale + recommendation over candidates
+GET  /status         # whether a model is loaded + report summary
+POST /demo-dataset   # return synthetic alloy rows for instant demos
+```
+
+### Streamlit page
+
+`app/pages/7_조성설계_플랫폼.py` — six tabs covering the full workflow
+(data → train → predict → design → verify → Claude assistant).
+
+### Quick demo (no real dataset needed)
+
+```bash
+pip install -r requirements.txt
+
+# Web UI
+streamlit run app/streamlit_app.py
+# → open the page "7_조성설계_플랫폼", click "합성 데이터 생성"
+
+# REST API
+uvicorn backend.main:app --reload
+curl -X POST http://localhost:8000/api/v1/composition/demo-dataset \
+     -H 'content-type: application/json' -d '{"n_samples": 200}'
+```
+
+### Claude integration
+
+Setting `ANTHROPIC_API_KEY` enables real LLM calls; otherwise every
+endpoint still works using the rule-based fallback in
+`core/llm_designer.py`. Override the model via `CLAUDE_COMPOSITION_MODEL`
+(default is the Claude Sonnet 4.X identifier). Prompt templates live in
+`core/composition_prompts.py` and the catalogue with examples is in
+[`prompts/claude_composition_prompts.md`](prompts/claude_composition_prompts.md).
+
+### Tests
+
+```bash
+pytest tests/test_composition_platform.py -q   # 21 tests, ~9s
+```
+
 ## License
 
 See [LICENSE](LICENSE).
