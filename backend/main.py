@@ -1,8 +1,17 @@
-"""FastAPI entry — exposes core/* modules as HTTP services.
+"""FastAPI entry — exposes the composition + AlloyForge modules as HTTP services.
 
 Run:
     uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 OpenAPI docs: http://localhost:8000/docs
+Web UI:      http://localhost:8000/
+
+Legacy routers (data, features, train, shap, mobo, literature) target the
+older Nb-Si scaffolding whose ``core/db.py`` is corrupted on disk and whose
+companion modules (``core/features.py``, ``core/models.py``, ``core/physics.py``,
+``core/shap_analysis.py``, ``core/mobo.py``, ``core/literature.py``) are
+missing entirely. We deliberately do **not** import them here so the rest of
+the platform boots cleanly. To revive that path, restore those modules and
+re-enable the imports below.
 """
 
 from __future__ import annotations
@@ -12,13 +21,22 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from backend.routers import alloyforge, composition, data, features, literature, mobo, shap, train
+from backend.routers import alloyforge, composition
+
+WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 app = FastAPI(
-    title="Nb-Si AM Alloy Design Platform",
-    version="0.1.0",
-    description="Physics-informed ML + MOBO + XAI services for Nb-Si AM research.",
+    title="Composition Design Platform",
+    version="0.2.0",
+    description=(
+        "ML-driven composition / property prediction, inverse design, "
+        "validation, and AI-assisted explanation. Lite path = "
+        "/api/v1/composition (RF / Dirichlet MC). Advanced path = "
+        "/api/v1/alloyforge (XGB + GP + Optuna + NSGA-II + SHAP + AL)."
+    ),
 )
 
 app.add_middleware(
@@ -29,26 +47,50 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(data.router, prefix="/api/v1/data", tags=["data"])
-app.include_router(features.router, prefix="/api/v1/features", tags=["features"])
-app.include_router(train.router, prefix="/api/v1/train", tags=["train"])
-app.include_router(shap.router, prefix="/api/v1/shap", tags=["shap"])
-app.include_router(mobo.router, prefix="/api/v1/mobo", tags=["mobo"])
-app.include_router(literature.router, prefix="/api/v1/lit", tags=["literature"])
 app.include_router(composition.router, prefix="/api/v1/composition", tags=["composition"])
 app.include_router(alloyforge.router, prefix="/api/v1/alloyforge", tags=["alloyforge"])
 
 
-@app.get("/")
-def root() -> dict:
+@app.get("/api", tags=["meta"])
+def api_root() -> dict:
     return {
-        "name": "Nb-Si AM Platform API",
-        "version": "0.1.0",
-        "db_path": os.environ.get("ALLOY_DB_PATH", str(Path("data/alloy.db").resolve())),
-        "docs": "/docs",
+        "name": "Composition Design Platform API",
+        "version": "0.2.0",
+        "endpoints": {
+            "composition_lite": "/api/v1/composition",
+            "alloyforge_advanced": "/api/v1/alloyforge",
+            "openapi_docs": "/docs",
+            "redoc": "/redoc",
+        },
     }
 
 
-@app.get("/health")
+@app.get("/health", tags=["meta"])
 def health() -> dict:
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Static web UI — served at "/" so the platform is usable from a browser
+# without a separate dev server. The Streamlit pages remain the richer
+# workbench (run with: streamlit run app/streamlit_app.py).
+# ---------------------------------------------------------------------------
+
+if WEB_DIR.exists():
+    app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def index() -> FileResponse:
+        index_path = WEB_DIR / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+        return JSONResponse({"error": "web/index.html missing"}, status_code=404)
+else:
+    @app.get("/", include_in_schema=False)
+    def index_no_web() -> JSONResponse:
+        return JSONResponse(
+            {
+                "name": "Composition Design Platform API",
+                "hint": "Web UI not built. See /api for endpoints, /docs for OpenAPI.",
+            }
+        )

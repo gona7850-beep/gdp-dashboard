@@ -1,6 +1,63 @@
-# Nb-Si AM Alloy Design Platform
+# Composition Design Platform
 
-End-to-end ML platform for Nb-Si-Ti / Nb-alloy (C103) Powder Bed Fusion (LPBF) and Directed Energy Deposition (DED) additive-manufacturing research. Implements an 8-step physics-informed workflow targeting SCI top journals (Acta Mater., npj Comput. Mater., Addit. Manuf.).
+ML-driven **composition → property prediction**, **inverse design**,
+**validation**, **feasibility analysis**, and **Claude-assisted
+interpretation** — packaged as a Python library, a REST API, a single-page
+web UI, a Streamlit workbench, a Docker image, and a Claude Code
+sub-agent + slash command set.
+
+Two ML backends share one platform:
+
+| | Lite (`core/composition_platform.py`) | Advanced (`core/alloyforge/`) |
+|---|---|---|
+| Forward model | RF / GBR / Ridge / MLP | Stacked XGBoost + GP residual head |
+| HPO | Fixed defaults | Optuna TPE |
+| Uncertainty | RF tree std | Calibrated GP σ + conformal 90% intervals |
+| Inverse design | Dirichlet MC + simple GA | NSGA-II with risk-aware `μ − λσ` |
+| Constraints | Element bounds | Hume-Rothery δ · VEC · VED · custom |
+| Explainability | — | SHAP + counterfactual search |
+| Active learning | — | Uncertainty + qEHVI batch picks |
+| Heavy deps | none | xgboost, optuna, pymoo, shap |
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+
+# Option 1 — single-page web UI + REST API (everything in one process)
+uvicorn backend.main:app --reload
+# → open http://localhost:8000
+
+# Option 2 — Streamlit research workbench
+streamlit run app/streamlit_app.py
+# → page 7 (lite) or page 8 (advanced)
+
+# Option 3 — Docker (both services side by side)
+docker compose up
+
+# Option 4 — CLI end-to-end demo on synthetic Fe-Ni-Cr-Mo-Ti data
+python examples/alloyforge_demo.py
+```
+
+Set `ANTHROPIC_API_KEY` to enable real Claude calls; without it,
+deterministic offline heuristics are used and every endpoint still returns
+200.
+
+## Legacy Nb-Si scaffolding (broken)
+
+The repository began as an 8-step Nb-Si-Ti / C103 AM research workflow.
+That scaffolding shipped with `core/db.py` corrupted on disk (831 null
+bytes) and several companion modules missing (`core/features.py`,
+`core/models.py`, `core/physics.py`, `core/shap_analysis.py`,
+`core/mobo.py`, `core/literature.py`). `backend/main.py` therefore no
+longer imports the legacy routers (`data`, `features`, `train`, `shap`,
+`mobo`, `literature`). Streamlit pages 1–6 fall in the same bucket. To
+revive that path: restore the missing modules and re-enable the imports
+in `backend/main.py`.
+
+---
+
+## Original Nb-Si workflow notes (kept for reference)
 
 > ⚠ **Ethics policy**: this platform integrates only legal Open-Access channels (CrossRef, OpenAlex, Semantic Scholar, arXiv, Unpaywall). Sci-Hub and similar piracy mirrors are explicitly excluded — they violate COPE / Elsevier publishing ethics and would compromise paper submission.
 
