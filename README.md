@@ -10,14 +10,34 @@ Two ML backends share one platform:
 
 | | Lite (`core/composition_platform.py`) | Advanced (`core/alloyforge/`) |
 |---|---|---|
-| Forward model | RF / GBR / Ridge / MLP | Stacked XGBoost + GP residual head |
+| Forward model | RF / GBR / Ridge / MLP | v1 = XGB+GP+Optuna · v2 = stacked XGB+LGBM+MLP+GP, Optuna-tuned per base learner |
 | HPO | Fixed defaults | Optuna TPE |
-| Uncertainty | RF tree std | Calibrated GP σ + conformal 90% intervals |
+| Uncertainty | RF tree std | v1 = conformal 90% intervals · v2 = epistemic + aleatoric decomposition |
+| Multi-task | — | v2 supports sibling-target stacking |
+| Physics features | — | v2 + `ExtendedFeaturizer` adds Miedema ΔH_mix, Yang's Ω, VEC-window probabilities, stiffness proxy |
+| Benchmarking | — | `compare_v1_vs_v2()` produces leaderboards on your data |
 | Inverse design | Dirichlet MC + simple GA | NSGA-II with risk-aware `μ − λσ` |
 | Constraints | Element bounds | Hume-Rothery δ · VEC · VED · custom |
 | Explainability | — | SHAP + counterfactual search |
 | Active learning | — | Uncertainty + qEHVI batch picks |
-| Heavy deps | none | xgboost, optuna, pymoo, shap |
+| Heavy deps | none | xgboost, lightgbm, optuna, pymoo, shap |
+
+### v1 vs v2 — when to pick which
+
+`ForwardModel` (v1) is a single Optuna-tuned XGBoost with a GP residual.
+Fast, strong on most tabular alloy problems. Pick it when you have
+<200 rows and just want a calibrated mean ± σ.
+
+`ForwardModelV2` is a stacked ensemble of XGBoost + LightGBM + sklearn-MLP
+with a Ridge meta-learner and a GP residual on top. Optuna-tunes each
+booster, deep-ensembles each (N seeds) for epistemic σ, optionally adds a
+multi-task pass where sibling-target predictions feed back as auxiliary
+features. Pair with `ExtendedFeaturizer` for ~10 metallurgical features
+(Miedema ΔH_mix, Yang's Ω, VEC-window probabilities, stiffness proxy).
+Pick it when you need epistemic/aleatoric decomposition (for active
+learning), multi-task lift on correlated properties, or a richer feature
+representation. Run `python examples/benchmark_v2.py` on your data —
+neither is a universal winner; the harness shows which to use.
 
 ## Quick start
 

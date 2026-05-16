@@ -14,6 +14,7 @@ httpx
 
 # AlloyForge advanced ML stack (core/alloyforge/)
 xgboost>=2.0
+lightgbm>=4.0
 optuna>=3.5
 pymoo>=0.6
 shap>=0.44
