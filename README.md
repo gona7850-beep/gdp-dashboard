@@ -19,29 +19,40 @@ Two ML backends share one platform:
 | Active learning | — | Uncertainty + qEHVI batch picks |
 | Heavy deps | none | xgboost, optuna, pymoo, shap |
 
+## Verify everything works (one command)
+
+```bash
+make install        # one-time
+make verify         # ~15s, runs pytest + ML pipelines + REST + Streamlit syntax
+# or, skip pytest for a 7s smoke:
+make verify-fast
+```
+
+You should see eight green checks and the message
+`✓ All 8 checks passed`. If any check fails the script prints the exact
+exception and a status table — paste that into a bug report.
+
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+make install            # install all deps
 
-# Option 1 — single-page web UI + REST API (everything in one process)
-uvicorn backend.main:app --reload
-# → open http://localhost:8000
+# Option 1 — single-page web UI + REST API (one process)
+make web                # → http://localhost:8000
 
 # Option 2 — Streamlit research workbench
-streamlit run app/streamlit_app.py
-# → page 7 (lite) or page 8 (advanced)
+make streamlit          # → http://localhost:8501
 
 # Option 3 — Docker (both services side by side)
-docker compose up
+make docker-up          # API:8000 + Streamlit:8501
 
 # Option 4 — CLI end-to-end demo on synthetic Fe-Ni-Cr-Mo-Ti data
-python examples/alloyforge_demo.py
+make demo
 ```
 
 Set `ANTHROPIC_API_KEY` to enable real Claude calls; without it,
 deterministic offline heuristics are used and every endpoint still returns
-200.
+200. Run `make help` to see all targets.
 
 ## Legacy Nb-Si scaffolding (broken)
 
