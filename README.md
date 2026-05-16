@@ -155,6 +155,101 @@ endpoint still works using the rule-based fallback in
 pytest tests/test_composition_platform.py -q   # 21 tests, ~9s
 ```
 
+## AlloyForge — advanced ML stack
+
+A heavier, more sophisticated companion to the composition design module
+above. Use when you have a real dataset and want calibrated uncertainty,
+SHAP explanations, multi-objective inverse design with constraints, and
+active-learning batch picks.
+
+### Capability matrix (advanced vs. lite)
+
+| Capability | `core/composition_platform.py` (lite) | `core/alloyforge/` (advanced) |
+|---|---|---|
+| Forward model | RF / GBR / Ridge / MLP | **Stacked XGBoost + GP residual head** |
+| Hyperparameter tuning | Fixed defaults | **Optuna TPE search** |
+| Featurization | Raw element fractions | **Physics-informed (mean/std/min/max/range × 6 properties + δ + entropy)** |
+| Uncertainty | RF tree std | **Calibrated GP σ + conformal intervals** |
+| Group-aware CV | No | **Yes** (`GroupKFold` on `groups`) |
+| Domain of applicability | No | **Yes** (NN-distance percentile) |
+| Inverse design | Dirichlet MC + simple GA | **NSGA-II (`pymoo`)** with risk-aware `μ − λσ` |
+| Constraints | Element bounds | **Constraint system**: Hume-Rothery δ, VEC window, VED window, custom |
+| Explainability | None | **SHAP + counterfactual search** |
+| Active learning | None | **Uncertainty + qEHVI Monte Carlo batch picks** |
+| Heavy deps | None | `xgboost`, `optuna`, `pymoo`, `shap`, `scipy` |
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `core/alloyforge/data_pipeline.py` | `CompositionFeaturizer`, `Dataset`, curated `ELEMENT_PROPERTIES` (35 elements) |
+| `core/alloyforge/forward_model.py` | Stacked XGB + GP, Optuna-tuned, group-aware CV |
+| `core/alloyforge/validation.py` | `ConformalCalibrator`, `DomainOfApplicability`, reliability diagrams |
+| `core/alloyforge/feasibility.py` | `Constraint` system + Hume-Rothery / VEC / VED / element bounds |
+| `core/alloyforge/inverse_design.py` | NSGA-II driver, `DesignSpec` config |
+| `core/alloyforge/explainability.py` | SHAP wrapper + counterfactual search |
+| `core/alloyforge/active_learning.py` | Uncertainty + qEHVI batch selection |
+| `core/alloyforge/llm_assistant.py` | Claude wrapper with metallurgy-aware prompts |
+
+### REST API (`/api/v1/alloyforge`)
+
+```
+POST /fit                  # stacked XGB+GP + Optuna + group-aware CV
+POST /predict              # μ, σ, conformal 90% interval, DoA score
+POST /feasibility/check    # Hume-Rothery / VEC / VED / bounds
+POST /inverse-design       # NSGA-II with risk-aware μ-λσ
+POST /explain              # SHAP + LLM-mediated metallurgy interpretation
+POST /active-learning      # uncertainty batch picks with diversity penalty
+GET  /sessions             # list in-memory sessions
+GET  /status               # capability flags + dep check
+```
+
+### Streamlit page
+
+`app/pages/8_AlloyForge_고급플랫폼.py` — six tabs (데이터 → 학습 →
+예측·신뢰구간 → NSGA-II 역설계 → SHAP → Active Learning).
+
+### Claude Code integration
+
+The `.claude/` directory at the repo root contains:
+
+- **6 specialized sub-agents**: `forward-modeler`, `inverse-designer`,
+  `validator`, `thermodynamics-expert`, `doe-planner`, `reviewer`. Each
+  has scope rules and invariants encoded so changes go through the right
+  reviewer.
+- **5 slash commands**: `/run-prediction`, `/inverse-search`,
+  `/explain-prediction`, `/validate-design`, `/generate-doe`. Drop-in
+  workflows you can invoke from the Claude Code CLI.
+
+Open the repo in Claude Code and these become available automatically.
+See `prompts/alloyforge_extension_guide.md` for the recommended
+extension workflow and `prompts/alloyforge_system_prompts.md` for the
+prompt library used by `LLMAssistant`.
+
+### Quick demo
+
+```bash
+pip install -r requirements.txt
+
+# End-to-end demo on synthetic Fe-Ni-Cr-Mo-Ti data
+python examples/alloyforge_demo.py
+
+# Streamlit UI
+streamlit run app/streamlit_app.py
+# → page "8_AlloyForge_고급플랫폼"
+
+# REST API
+uvicorn backend.main:app --reload
+curl http://localhost:8000/api/v1/alloyforge/status
+```
+
+### Tests
+
+```bash
+pytest tests/test_alloyforge.py -q     # 11 tests, ~5s
+pytest tests/ -q                        # 32 tests total (lite + advanced)
+```
+
 ## License
 
 See [LICENSE](LICENSE).
