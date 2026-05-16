@@ -1,13 +1,26 @@
+# Core
 streamlit
 pandas
 numpy
-scikit-learn
+scipy>=1.11
+scikit-learn>=1.3
 joblib
+
+# Web API
 fastapi
 uvicorn[standard]
-pydantic
+pydantic>=2.5
 httpx
+
+# AlloyForge advanced ML stack (core/alloyforge/)
+xgboost>=2.0
+optuna>=3.5
+pymoo>=0.6
+shap>=0.44
+
+# Optional: enables real Claude calls (both LLMDesigner and LLMAssistant
+# fall back to deterministic heuristics if anthropic is missing or no API key)
+anthropic>=0.30
+
+# Tests
 pytest
-# Optional: enables real Claude calls in core/llm_designer.py
-# (the platform falls back to heuristics if it is missing or no API key is set)
-anthropic

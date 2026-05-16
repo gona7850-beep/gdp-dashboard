@@ -13,7 +13,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import composition, data, features, literature, mobo, shap, train
+from backend.routers import alloyforge, composition, data, features, literature, mobo, shap, train
 
 app = FastAPI(
     title="Nb-Si AM Alloy Design Platform",
@@ -36,6 +36,7 @@ app.include_router(shap.router, prefix="/api/v1/shap", tags=["shap"])
 app.include_router(mobo.router, prefix="/api/v1/mobo", tags=["mobo"])
 app.include_router(literature.router, prefix="/api/v1/lit", tags=["literature"])
 app.include_router(composition.router, prefix="/api/v1/composition", tags=["composition"])
+app.include_router(alloyforge.router, prefix="/api/v1/alloyforge", tags=["alloyforge"])
 
 
 @app.get("/")
