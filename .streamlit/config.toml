@@ -1,0 +1,16 @@
+# Streamlit configuration — applies to local + Streamlit Cloud deploys.
+
+[server]
+headless = true
+runOnSave = false
+maxUploadSize = 50
+
+[theme]
+primaryColor = "#d24a1f"
+backgroundColor = "#f4f1ea"
+secondaryBackgroundColor = "#e8e3d6"
+textColor = "#0f1117"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
