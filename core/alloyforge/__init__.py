@@ -39,6 +39,17 @@ from .external_data import (
 )
 from .llm_table_extractor import extract_alloy_table, ExtractionReport
 from .accuracy_report import AccuracyReport, evaluate_model
+from .hts_screening import (
+    HOSTS,
+    HostMatrix,
+    KnownCompound,
+    NB_HOST_COMPOUNDS,
+    ScoreWeights,
+    host_plus_precipitate_composition,
+    rank_compounds,
+    score_compound,
+)
+from .oqmd_client import parse_oqmd_csv, query_oqmd, to_known_compounds
 from .validation import ConformalCalibrator, DomainOfApplicability, reliability_diagram
 from .feasibility import (
     Constraint,
@@ -70,6 +81,10 @@ __all__ = [
     "materials_project_summary", "provider_status",
     "extract_alloy_table", "ExtractionReport",
     "AccuracyReport", "evaluate_model",
+    "HOSTS", "HostMatrix", "KnownCompound", "NB_HOST_COMPOUNDS",
+    "ScoreWeights", "score_compound", "rank_compounds",
+    "host_plus_precipitate_composition",
+    "query_oqmd", "to_known_compounds", "parse_oqmd_csv",
     "ConformalCalibrator", "DomainOfApplicability", "reliability_diagram",
     "Constraint", "FeasibilityChecker", "FeasibilityResult",
     "hume_rothery_size_mismatch", "vec_window", "element_bounds",

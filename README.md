@@ -110,6 +110,54 @@ rep.overall_grade       # 'A' / 'B' / 'C' / 'D' heuristic
 
 End-to-end demo: `python examples/accuracy_report_demo.py`.
 
+## High-throughput compound screening
+
+An alternative to CALPHAD-based alloy design that mirrors the workflow
+in Cho 2025 (Kookmin NSM Lab) for Nb-host alloys:
+
+1. **Compound corpus** — bundled curated DB of ~22 Nb-host intermetallics
+   (Nb-Si, Nb-Al, Nb-Cr, Nb-Ni, Nb-Co, Nb-Fe, Nb-Ge, boride / carbide
+   additives, ternary substitutions). Live OQMD queries are also
+   supported via `core/alloyforge/oqmd_client.py`.
+2. **Three thermodynamic descriptors** scored independently and combined:
+   * **Tie line with host matrix** — does an isothermal tie line exist
+     between the compound and the host metal? Required so the compound
+     can coexist with the matrix without consuming it.
+   * **Standalone stability** — formation enthalpy per atom (negative,
+     and lower than competing decomposition products).
+   * **Coherency** — **modular** lattice + per-atom-volume mismatch
+     with the host (tries k = 1, 2, 3, 4 multiples so super-cell
+     matches like Nb₅Si₃ a=6.57 Å ≈ 2 × Nb a=3.30 Å score correctly).
+3. **Ranking** — weighted average with adjustable weights; filters for
+   required/forbidden elements + minimum tie-line score.
+4. **Bridge to ML** — `host_plus_precipitate_composition()` mixes a
+   host matrix + a precipitate compound at a given atomic fraction,
+   producing a row the forward model can predict on.
+
+```python
+from core.alloyforge import rank_compounds, ScoreWeights
+
+# Default: equal weights, all bundled compounds for Nb host
+ranked = rank_compounds(host="Nb", top_k=10)
+
+# Custom: emphasise stability + coherency over tie line
+ranked = rank_compounds(
+    host="Nb",
+    weights=ScoreWeights(tie_line=0.5, stability=2.0, coherency=2.0),
+    required_elements=["Nb", "Si"],
+)
+```
+
+REST endpoints: `/api/v1/hts/{hosts, compounds, rank, compound-mix,
+oqmd-search, oqmd-rank}`. Streamlit UI at page 10
+(`10_HTS_화합물_스크리닝.py`). End-to-end demo:
+`python examples/hts_nb_alloy_demo.py`.
+
+For Nb-host the top-ranked compounds are silicide variants:
+**(Nb,Hf)₅Si₃, Nb₅Si₃-α, (Nb,Ti)₅Si₃** — the in-situ-composite phases
+that the Bewlay et al. body of literature has validated as the primary
+strengthening phases for high-temperature Nb-Si alloys.
+
 ## Streamlit data-collection page
 
 `app/pages/9_데이터_수집_통합.py` — five-tab UI:
