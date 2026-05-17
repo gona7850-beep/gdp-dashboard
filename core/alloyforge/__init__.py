@@ -30,6 +30,15 @@ from .data_ingestion import (
     normalize_composition,
     normalize_units,
 )
+from .external_data import (
+    materials_project_summary,
+    provider_status,
+    search_arxiv,
+    search_crossref,
+    search_openalex,
+)
+from .llm_table_extractor import extract_alloy_table, ExtractionReport
+from .accuracy_report import AccuracyReport, evaluate_model
 from .validation import ConformalCalibrator, DomainOfApplicability, reliability_diagram
 from .feasibility import (
     Constraint,
@@ -57,6 +66,10 @@ __all__ = [
     "find_alloy", "weight_to_atomic_pct", "atomic_to_weight_pct",
     "IngestSummary", "convert_value", "flag_outliers", "infer_units",
     "merge_datasets", "normalize_composition", "normalize_units",
+    "search_openalex", "search_arxiv", "search_crossref",
+    "materials_project_summary", "provider_status",
+    "extract_alloy_table", "ExtractionReport",
+    "AccuracyReport", "evaluate_model",
     "ConformalCalibrator", "DomainOfApplicability", "reliability_diagram",
     "Constraint", "FeasibilityChecker", "FeasibilityResult",
     "hume_rothery_size_mismatch", "vec_window", "element_bounds",

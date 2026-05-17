@@ -60,6 +60,82 @@ on the 38-alloy reference table, predicts Ti-6Al-4V properties
 designs a high-strength low-density Ti-rich composition, and reports
 the nearest documented alloy in the reference DB as a backstop.
 
+## External data sources
+
+`core/alloyforge/external_data.py` ships four clients with consistent
+return schema (`title / authors / year / venue / doi / url / abstract /
+source`). All return an empty DataFrame on network failure — they
+never crash the platform.
+
+| Provider | Auth | Function |
+|---|---|---|
+| OpenAlex | none (mailto recommended) | `search_openalex(query)` |
+| arXiv | none | `search_arxiv(query)` |
+| CrossRef | none (mailto recommended) | `search_crossref(query)` |
+| Materials Project | `MP_API_KEY` env var | `materials_project_summary(elements=…)` |
+
+`provider_status()` reports which clients are configured. The
+companion FastAPI endpoints sit under `/api/v1/data/external/*`.
+
+## LLM-mediated table extraction
+
+`core/alloyforge/llm_table_extractor.py` accepts raw paper text and
+returns structured rows ready for `merge_datasets()`. With
+`ANTHROPIC_API_KEY` it uses Claude (default `claude-sonnet-4-6`,
+overridable via `CLAUDE_TABLE_EXTRACTOR_MODEL`) and enforces a strict
+JSON schema with per-row confidence flags (`high/medium/low`). Without
+the key, a regex heuristic captures the simplest patterns and labels
+everything `confidence="low"` so users know what to spot-check.
+
+## Accuracy & reliability report
+
+`core/alloyforge/accuracy_report.py` runs every standard model
+diagnostic in one call:
+
+* hold-out R² / MAE / RMSE
+* K-fold CV mean ± std (group-aware when `Dataset.groups` is set)
+* permutation-test p-value (the bar for "model learned something")
+* conformal-interval empirical coverage at nominal 90 %
+* per-target reliability diagrams
+* DoA percentiles
+* sanity check predicting every reference alloy
+
+```python
+from core.alloyforge import evaluate_model
+
+rep = evaluate_model(model, dataset, targets=["yield_mpa", "tensile_mpa"])
+print(rep.summary())   # CV R²=0.91±0.04, perm p=0.02, coverage=87%@90%
+rep.overall_grade       # 'A' / 'B' / 'C' / 'D' heuristic
+```
+
+End-to-end demo: `python examples/accuracy_report_demo.py`.
+
+## Streamlit data-collection page
+
+`app/pages/9_데이터_수집_통합.py` — five-tab UI:
+
+1. browse / filter the 38-alloy reference DB
+2. upload CSV/Excel with auto unit detection
+3. search OpenAlex / arXiv / CrossRef / Materials Project
+4. paste paper text → LLM table extraction → confidence-flagged rows
+5. merge everything into one CSV with a `source` group column
+
+## FastAPI data router
+
+Mounted at `/api/v1/data`:
+
+```
+GET  /reference-alloys                 # 38 curated alloys
+GET  /reference-alloys/{name}          # one alloy
+POST /ingest                           # unit-aware merge + dedup
+GET  /external/status                  # which providers usable
+GET  /external/openalex?q=...
+GET  /external/arxiv?q=...
+GET  /external/crossref?q=...
+GET  /external/materials-project?elements=Fe,Ni
+POST /llm-extract                      # LLM table extraction
+```
+
 ---
 
 Two ML backends share one platform:
