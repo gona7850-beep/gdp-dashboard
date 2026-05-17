@@ -242,7 +242,9 @@ def _holdout_metrics(model, dataset: Dataset, targets, seed: int):
     # Re-fit on train slice
     factory_model = _clone_model(model)
     _safe_fit(factory_model, _slice_dataset(dataset, tr_idx))
-    preds = factory_model.predict(dataset.compositions.iloc[te_idx])
+    proc_te = (dataset.process.iloc[te_idx].reset_index(drop=True)
+               if dataset.process is not None else None)
+    preds = factory_model.predict(dataset.compositions.iloc[te_idx], process=proc_te)
     out = {}
     for t in targets:
         y_true = dataset.properties.iloc[te_idx][t].to_numpy(dtype=float)
@@ -263,7 +265,9 @@ def _kfold_metrics(model, dataset: Dataset, targets, n_splits, n_seeds, seed):
         for tr, te in splits:
             m = _clone_model(model)
             _safe_fit(m, _slice_dataset(dataset, tr))
-            preds = m.predict(dataset.compositions.iloc[te])
+            proc_te = (dataset.process.iloc[te].reset_index(drop=True)
+                       if dataset.process is not None else None)
+            preds = m.predict(dataset.compositions.iloc[te], process=proc_te)
             for t in targets:
                 y_true = dataset.properties.iloc[te][t].to_numpy(dtype=float)
                 y_pred = preds[f"{t}_mean"].to_numpy(dtype=float)
@@ -297,8 +301,10 @@ def _permutation_pvalues(model, dataset: Dataset, targets, n_permutations,
         for tr, te in splits:
             mm = _clone_model(model)
             _safe_fit(mm, _slice_dataset(dataset, tr))
+            proc_te = (dataset.process.iloc[te].reset_index(drop=True)
+                       if dataset.process is not None else None)
             cv_preds[te] = mm.predict(
-                dataset.compositions.iloc[te]
+                dataset.compositions.iloc[te], process=proc_te,
             )[f"{t}_mean"].to_numpy(dtype=float)
         real_r2[t] = float(r2_score(
             dataset.properties[t].to_numpy(dtype=float), cv_preds
@@ -320,8 +326,10 @@ def _permutation_pvalues(model, dataset: Dataset, targets, n_permutations,
             for tr, te in splits:
                 mm = _clone_model(model)
                 _safe_fit(mm, _slice_dataset(ds_perm, tr))
+                proc_te = (ds_perm.process.iloc[te].reset_index(drop=True)
+                           if ds_perm.process is not None else None)
                 cv_preds[te] = mm.predict(
-                    ds_perm.compositions.iloc[te]
+                    ds_perm.compositions.iloc[te], process=proc_te,
                 )[f"{t}_mean"].to_numpy(dtype=float)
             null_scores[t].append(float(r2_score(
                 ds_perm.properties[t].to_numpy(dtype=float), cv_preds
@@ -343,7 +351,7 @@ def _permutation_pvalues(model, dataset: Dataset, targets, n_permutations,
 def _coverage_check(model, dataset: Dataset, targets, alpha: float):
     """Compute empirical coverage of nominal-α prediction intervals."""
     out: Dict[str, Dict[str, float]] = {}
-    preds = model.predict(dataset.compositions)
+    preds = model.predict(dataset.compositions, process=dataset.process)
     z = 1.6449   # 90% Gaussian z; only used when no _lo/_hi provided
     for t in targets:
         if f"{t}_lo" in preds.columns and f"{t}_hi" in preds.columns:
@@ -369,7 +377,7 @@ def _coverage_check(model, dataset: Dataset, targets, alpha: float):
 def _reliability_diagrams(model, dataset: Dataset, targets) -> Dict[str, pd.DataFrame]:
     """Per-target nominal-vs-empirical coverage at 10 confidence levels."""
     out: Dict[str, pd.DataFrame] = {}
-    preds = model.predict(dataset.compositions)
+    preds = model.predict(dataset.compositions, process=dataset.process)
     from scipy.stats import norm
     for t in targets:
         if f"{t}_std" not in preds.columns:

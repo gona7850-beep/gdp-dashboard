@@ -56,6 +56,8 @@ ELEMENT_PROPERTIES: Dict[str, Dict[str, float]] = {
     "Cu": {"Z": 29, "mass": 63.546,  "radius": 145, "en": 1.90, "density": 8.96,    "Tm": 1358, "vec": 11},
     "Zn": {"Z": 30, "mass": 65.38,   "radius": 142, "en": 1.65, "density": 7.14,    "Tm": 693,  "vec": 12},
     "Ga": {"Z": 31, "mass": 69.723,  "radius": 136, "en": 1.81, "density": 5.91,    "Tm": 303,  "vec": 3},
+    "Ge": {"Z": 32, "mass": 72.630,  "radius": 125, "en": 2.01, "density": 5.32,    "Tm": 1211, "vec": 4},
+    "Y":  {"Z": 39, "mass": 88.906,  "radius": 212, "en": 1.22, "density": 4.47,    "Tm": 1799, "vec": 3},
     "Zr": {"Z": 40, "mass": 91.224,  "radius": 206, "en": 1.33, "density": 6.52,    "Tm": 2128, "vec": 4},
     "Nb": {"Z": 41, "mass": 92.906,  "radius": 198, "en": 1.6,  "density": 8.57,    "Tm": 2750, "vec": 5},
     "Mo": {"Z": 42, "mass": 95.95,   "radius": 190, "en": 2.16, "density": 10.28,   "Tm": 2896, "vec": 6},
