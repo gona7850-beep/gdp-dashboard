@@ -6,6 +6,68 @@ interpretation** — packaged as a Python library, a REST API, a single-page
 web UI, a Streamlit workbench, a Docker image, and a Claude Code
 sub-agent + slash command set.
 
+## Deploy in one command
+
+```bash
+pip install -r requirements.txt
+streamlit run app/streamlit_app.py
+# → http://localhost:8501  →  open page "0_통합대시보드"
+```
+
+The **통합 대시보드** (`app/pages/0_통합대시보드.py`) is the canonical
+research UI: 6 tabs covering training, prediction, HTS compound ranking,
+inverse design, active-learning batch picks, and the accuracy report —
+all stitched together. Other pages (7–10) exist for power users wanting
+fine-grained control.
+
+Other deploy paths:
+
+```bash
+# REST API + single-page HTML UI on port 8000
+uvicorn backend.main:app --reload
+
+# Docker (API + Streamlit on 8000/8501)
+docker compose up
+
+# Streamlit Community Cloud / HF Spaces: this repo is already configured
+# (.streamlit/config.toml, requirements.txt). Point at app/streamlit_app.py.
+```
+
+## Pipeline at a glance
+
+```
+   Reference DB (38)          User CSV / Excel
+            │                          │
+   Curated 38 alloys      ┌──── auto unit + comp basis
+            │             │
+            └─────┬───────┘
+                  │      External APIs (OpenAlex / arXiv / CrossRef / MP)
+                  │              │
+                  │      LLM table extraction (Claude)
+                  ▼              │
+        merge_datasets(source=group_key)
+                  │
+                  ▼
+   ┌────────────────────────────────────────────┐
+   │  CompositionFeaturizer +                    │
+   │  PhaseFractionFeaturizer (microstructure)  │
+   │  HTSScoreFeaturizer (compound chemistry)   │
+   │  ExtendedFeaturizer (Miedema / Ω / VEC)    │
+   └────────────────────────────────────────────┘
+                  │
+                  ▼
+         ForwardModel (v1: XGB+GP+Optuna)
+         ForwardModelV2 (stacked + multi-task)
+                  │
+        ┌─────────┼──────────────┬────────────┐
+        ▼         ▼              ▼            ▼
+   predict   NSGA-II        ActiveLearning  evaluate_model
+              inverse        ExperimentPlanner   (CV+perm+
+              design                              conformal+
+                                                  reliability+
+                                                  reference)
+```
+
 ## Reference alloy database (38 well-known alloys)
 
 `core/alloyforge/reference_data.py` ships a curated table of ~38

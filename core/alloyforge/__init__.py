@@ -50,6 +50,13 @@ from .hts_screening import (
     score_compound,
 )
 from .oqmd_client import parse_oqmd_csv, query_oqmd, to_known_compounds
+from .microstructure_features import (
+    PhaseFractionFeaturizer,
+    load_cleaned_nb_si,
+    split_columns,
+)
+from .hts_descriptor import HTSScoreFeaturizer
+from .active_learning_planner import ExperimentPlanner, PlannerWeights
 from .validation import ConformalCalibrator, DomainOfApplicability, reliability_diagram
 from .feasibility import (
     Constraint,
@@ -85,6 +92,9 @@ __all__ = [
     "ScoreWeights", "score_compound", "rank_compounds",
     "host_plus_precipitate_composition",
     "query_oqmd", "to_known_compounds", "parse_oqmd_csv",
+    "PhaseFractionFeaturizer", "load_cleaned_nb_si", "split_columns",
+    "HTSScoreFeaturizer",
+    "ExperimentPlanner", "PlannerWeights",
     "ConformalCalibrator", "DomainOfApplicability", "reliability_diagram",
     "Constraint", "FeasibilityChecker", "FeasibilityResult",
     "hume_rothery_size_mismatch", "vec_window", "element_bounds",
