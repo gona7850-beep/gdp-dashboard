@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend.routers import alloyforge, composition, data_sources
+from backend.routers import alloyforge, composition, data_sources, hts
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -50,6 +50,7 @@ app.add_middleware(
 app.include_router(composition.router, prefix="/api/v1/composition", tags=["composition"])
 app.include_router(alloyforge.router, prefix="/api/v1/alloyforge", tags=["alloyforge"])
 app.include_router(data_sources.router, prefix="/api/v1/data", tags=["data"])
+app.include_router(hts.router, prefix="/api/v1/hts", tags=["hts"])
 
 
 @app.get("/api", tags=["meta"])
