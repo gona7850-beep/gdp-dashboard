@@ -6,6 +6,62 @@ interpretation** — packaged as a Python library, a REST API, a single-page
 web UI, a Streamlit workbench, a Docker image, and a Claude Code
 sub-agent + slash command set.
 
+## Reference alloy database (38 well-known alloys)
+
+`core/alloyforge/reference_data.py` ships a curated table of ~38
+household-name alloys — 304/316L/17-4 PH/Maraging/M2/4140 steels,
+Inconel 718/625/Hastelloy X/Waspaloy/CMSX-4 Ni superalloys, Ti-6Al-4V/
+Ti-6242/Ti-5553, AA 2024/6061/7075/AlSi10Mg, Cantor + AlCoCrFeNi HEAs,
+Stellite 6, MP35N, CuBe, brass, C-103/W/Mo TZM/Ta refractories — each
+with yield/UTS/elongation/HV/density/Young's modulus/melting point
+compiled from ASM Handbook, MatWeb, and producer datasheets. Use it as:
+
+- **Backstop** when comparing inverse-design candidates to known alloys.
+- **Pretrain seed** for a forward model before fine-tuning on your CSV.
+- **Sanity reference** to spot-check predictions against published values.
+
+```python
+from core.alloyforge import reference_dataset, find_alloy
+
+df = reference_dataset()                 # 38-row training-ready DataFrame
+ti = find_alloy("Ti-6Al-4V")             # one record with refs + notes
+ti.as_atomic()                            # {"Ti": 0.862, "Al": 0.102, "V": 0.036}
+```
+
+## Data ingestion + unit conversion
+
+`core/alloyforge/data_ingestion.py` handles the common accuracy traps in
+externally-sourced materials data:
+
+- **Auto-infer** unit per column from header names + value ranges
+  (`MPa / ksi / GPa / HV / HRC / HB / K / °C / wt%`).
+- **Convert** with ASTM E140 tables for HRC→HV (verified to within 2 HV
+  across the standard table) and closed-form formulas for stress /
+  temperature.
+- **Composition normalisation** from weight % → atomic fraction.
+- **Robust outlier flagging** via median-absolute-deviation z-score.
+- **Merge multiple sources** with a `source` column added for
+  GroupKFold so the same alloy reused across papers can't leak.
+
+```python
+from core.alloyforge import merge_datasets, normalize_composition
+
+merged, summary = merge_datasets(
+    sources={"my_csv": my_df, "lab_logbook": logbook_df},
+    element_columns=["Fe", "Ni", "Cr", "Mo"],
+    target_columns=["yield_mpa", "tensile_mpa"],
+)
+# merged["source"] becomes the group key for Dataset(groups=...)
+```
+
+End-to-end demo: `python examples/reference_alloys_demo.py` pretrains
+on the 38-alloy reference table, predicts Ti-6Al-4V properties
+(recovers ~880/950/340 MPa/HV from the literature values), inverse-
+designs a high-strength low-density Ti-rich composition, and reports
+the nearest documented alloy in the reference DB as a backstop.
+
+---
+
 Two ML backends share one platform:
 
 | | Lite (`core/composition_platform.py`) | Advanced (`core/alloyforge/`) |
